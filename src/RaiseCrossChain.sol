@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.13;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "wormhole-solidity-sdk/WormholeRelayerSDK.sol";
 
-contract CrowdFunding is TokenSender, TokenReceiver {
+contract RaiseCrossChain is TokenSender, TokenReceiver {
 
     struct Campaign {
         bytes32 id;
@@ -106,7 +105,7 @@ contract CrowdFunding is TokenSender, TokenReceiver {
         bytes32,
         uint16,
         bytes32
-    ) internal onlyWormholeRelayer {
+    ) internal override onlyWormholeRelayer {
         require(receivedTokens.length == 1, "Expected 1 token transfer");
 
         address recipient = abi.decode(payload, (address));
