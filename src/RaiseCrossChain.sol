@@ -71,13 +71,16 @@ contract RaiseCrossChain is TokenSender, TokenReceiver {
         cost = deliveryCost + wormhole.messageFee();
     }
 
-    function sendTokensCrossChain(
+    function donateTokensCrossChainToCampaign(
         uint16 targetChain, // Target chain ID
         address targetContract, // Address of the HelloToken contract on the target chain
         address recipient, // Recipient address on the target chain
         uint256 amount, // Amount of tokens to send
-        address token // Address of the ERC-20 token
+        address token, // Address of the ERC-20 token
+        bytes32 _id // ID of the campaign
     ) public payable {
+        Campaign storage campaign = campaigns[_id];
+
         uint256 cost = quoteCrossChainDeposit(targetChain);
         require(msg.value == cost, "Incorrect ETH value provided");
 
@@ -97,8 +100,24 @@ contract RaiseCrossChain is TokenSender, TokenReceiver {
             token,
             amount
         );
+
+        // Step 3: Update donation records
+        campaign.donators.push(msg.sender);
+        campaign.donations.push(amount);
+        campaign.amountCollected += amount;
     }
- 
+    
+    // donate native token to campaign
+    function donateToCampaign(bytes32 _id ) public payable {
+        Campaign storage campaign = campaigns[_id];
+
+        require(msg.value > 0, "Donation must be greater than 0");
+
+        campaign.donators.push(msg.sender);
+        campaign.donations.push(msg.value);
+        campaign.amountCollected += msg.value;
+    }
+
     function receivePayloadAndTokens(
         bytes memory payload,
         TokenReceived[] memory receivedTokens,
@@ -106,7 +125,7 @@ contract RaiseCrossChain is TokenSender, TokenReceiver {
         uint16,
         bytes32
     ) internal override onlyWormholeRelayer {
-        require(receivedTokens.length == 1, "Expected 1 token transfer");
+        require(receivedTokens.length > 0, "Expected atleast 1 token transfer");
 
         address recipient = abi.decode(payload, (address));
         IERC20(receivedTokens[0].tokenAddress).transfer(recipient, receivedTokens[0].amount);
